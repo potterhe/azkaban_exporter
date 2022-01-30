@@ -14,8 +14,9 @@ var (
 type Exporter struct {
 	client *azkaban.Client
 
-	up      *prometheus.Desc
-	version *prometheus.Desc
+	up         *prometheus.Desc
+	version    *prometheus.Desc
+	databaseUp *prometheus.Desc
 }
 
 // New returns an initialized exporter.
@@ -36,6 +37,12 @@ func New(server string) *Exporter {
 			[]string{"version"},
 			nil,
 		),
+		databaseUp: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "database_up"),
+			"Could the database be reached.",
+			nil,
+			nil,
+		),
 	}
 }
 
@@ -44,6 +51,7 @@ func New(server string) *Exporter {
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.up
 	ch <- e.version
+	ch <- e.databaseUp
 }
 
 // Collect fetches the statistics from the configured azkaban web server, and
@@ -53,10 +61,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	// todo 连接服务器
 	ch <- prometheus.MustNewConstMetric(e.up, prometheus.GaugeValue, 0)
 
-	resp, err := e.client.Status()
-	fmt.Println(resp, err)
+	status, err := e.client.Status()
+	fmt.Println(status, err)
 	if err == nil {
-		ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, resp.Version)
+		ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, status.Version)
+		var iDatabaseUp float64 = 0
+		if status.IsDatabaseUp {
+			iDatabaseUp = 1
+		}
+		ch <- prometheus.MustNewConstMetric(e.databaseUp, prometheus.GaugeValue, iDatabaseUp)
 	}
 
 }
