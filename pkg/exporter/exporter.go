@@ -1,6 +1,9 @@
 package exporter
 
 import (
+	"fmt"
+
+	"github.com/potterhe/azkaban_exporter/pkg/azkaban"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -9,13 +12,18 @@ var (
 )
 
 type Exporter struct {
+	client *azkaban.Client
+
 	up      *prometheus.Desc
 	version *prometheus.Desc
 }
 
 // New returns an initialized exporter.
-func New() *Exporter {
+func New(server string) *Exporter {
 	return &Exporter{
+		client: &azkaban.Client{
+			Server: server,
+		},
 		up: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "up"),
 			"Could the azkaban web server be reached.",
@@ -41,6 +49,14 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 // Collect fetches the statistics from the configured azkaban web server, and
 // delivers them as Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+
+	// todo 连接服务器
 	ch <- prometheus.MustNewConstMetric(e.up, prometheus.GaugeValue, 0)
-	ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, "3.91.0-134-g68e7c718")
+
+	resp, err := e.client.Status()
+	fmt.Println(resp, err)
+	if err == nil {
+		ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, resp.Version)
+	}
+
 }
