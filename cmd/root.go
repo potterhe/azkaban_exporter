@@ -17,7 +17,12 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+
+	"github.com/potterhe/azkaban_exporter/pkg/exporter"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -36,9 +41,15 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Version: "1.0.0",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+
+		prometheus.MustRegister(exporter.New())
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":9090", nil)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
