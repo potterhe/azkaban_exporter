@@ -31,6 +31,7 @@ import (
 
 var cfgFile string
 var server string
+var listenAddress string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -49,7 +50,7 @@ to quickly create a Cobra application.`,
 
 		prometheus.MustRegister(exporter.New(server))
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":9090", nil)
+		http.ListenAndServe(listenAddress, nil)
 	},
 }
 
@@ -68,6 +69,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.azkaban_exporter.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&server, "server", "s", "", "azakabn web server url")
+	rootCmd.PersistentFlags().StringVarP(&listenAddress, "listen-address", "l", ":8090", "exporter listen address")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

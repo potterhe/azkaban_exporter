@@ -85,6 +85,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	// todo 连接服务器
 	ch <- prometheus.MustNewConstMetric(e.up, prometheus.GaugeValue, 0)
 
+	// status api
 	status, err := e.client.Status()
 	fmt.Println(status, err)
 	if err == nil {
