@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/potterhe/azkaban_exporter/pkg/azkaban"
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,9 +15,10 @@ var (
 type Exporter struct {
 	client *azkaban.Client
 
-	up         *prometheus.Desc
-	version    *prometheus.Desc
-	databaseUp *prometheus.Desc
+	up             *prometheus.Desc
+	version        *prometheus.Desc
+	databaseUp     *prometheus.Desc
+	executorStatus *prometheus.Desc
 }
 
 // New returns an initialized exporter.
@@ -43,6 +45,12 @@ func New(server string) *Exporter {
 			nil,
 			nil,
 		),
+		executorStatus: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "executor_status"),
+			"Executor status",
+			[]string{"host", "is_active"},
+			nil,
+		),
 	}
 }
 
@@ -52,6 +60,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.up
 	ch <- e.version
 	ch <- e.databaseUp
+	ch <- e.executorStatus
 }
 
 // Collect fetches the statistics from the configured azkaban web server, and
@@ -70,6 +79,10 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			iDatabaseUp = 1
 		}
 		ch <- prometheus.MustNewConstMetric(e.databaseUp, prometheus.GaugeValue, iDatabaseUp)
+
+		for _, executor := range status.ExecutorStatusMap {
+			ch <- prometheus.MustNewConstMetric(e.executorStatus, prometheus.GaugeValue, 1, executor.Host, strconv.FormatBool(executor.IsActive))
+		}
 	}
 
 }
