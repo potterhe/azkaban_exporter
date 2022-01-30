@@ -15,10 +15,12 @@ var (
 type Exporter struct {
 	client *azkaban.Client
 
-	up             *prometheus.Desc
-	version        *prometheus.Desc
-	databaseUp     *prometheus.Desc
-	executorStatus *prometheus.Desc
+	up              *prometheus.Desc
+	version         *prometheus.Desc
+	databaseUp      *prometheus.Desc
+	executorStatus  *prometheus.Desc
+	usedMemoryBytes *prometheus.Desc
+	xmxBytes        *prometheus.Desc
 }
 
 // New returns an initialized exporter.
@@ -51,6 +53,18 @@ func New(server string) *Exporter {
 			[]string{"host", "is_active"},
 			nil,
 		),
+		usedMemoryBytes: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "used_memory_bytes"),
+			"Azkaban web server used memory bytes",
+			nil,
+			nil,
+		),
+		xmxBytes: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "xmx_bytes"),
+			"Azkaban web server xmx bytes",
+			nil,
+			nil,
+		),
 	}
 }
 
@@ -61,6 +75,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.version
 	ch <- e.databaseUp
 	ch <- e.executorStatus
+	ch <- e.usedMemoryBytes
 }
 
 // Collect fetches the statistics from the configured azkaban web server, and
@@ -83,6 +98,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		for _, executor := range status.ExecutorStatusMap {
 			ch <- prometheus.MustNewConstMetric(e.executorStatus, prometheus.GaugeValue, 1, executor.Host, strconv.FormatBool(executor.IsActive))
 		}
+		ch <- prometheus.MustNewConstMetric(e.usedMemoryBytes, prometheus.GaugeValue, float64(status.UsedMemory))
+		ch <- prometheus.MustNewConstMetric(e.xmxBytes, prometheus.GaugeValue, float64(status.Xmx))
 	}
 
 }
